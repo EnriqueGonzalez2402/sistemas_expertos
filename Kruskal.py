@@ -1,72 +1,93 @@
+import networkx as nx
+import matplotlib.pyplot as plt
+import time
+
+# -----------------------------
+# PROBLEMA
+# Construir una red de carreteras
+# entre ciudades con el menor costo.
+# -----------------------------
+
+G = nx.Graph()
+
+edges = [
+("A","B",4),
+("A","C",2),
+("B","C",1),
+("B","D",5),
+("C","D",8),
+("C","E",10),
+("D","E",2),
+("D","F",6),
+("E","F",3)
+]
+
+G.add_weighted_edges_from(edges)
+
+pos = nx.spring_layout(G)
+
+def dibujar(aristas=[]):
+
+    plt.clf()
+
+    nx.draw(G,pos,node_color="lightyellow",node_size=2000,with_labels=True)
+
+    labels = nx.get_edge_attributes(G,'weight')
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
+
+    nx.draw_networkx_edges(G,pos,edgelist=aristas,width=4,edge_color="blue")
+
+    plt.title("Kruskal - Construcción de carreteras")
+    plt.pause(1)
+
+
 class UnionFind:
-    def __init__(self, nodos):
-        self.padre = {n: n for n in nodos}
-        self.rango = {n: 0 for n in nodos}
 
-    def encontrar(self, nodo):
-        if self.padre[nodo] != nodo:
-            self.padre[nodo] = self.encontrar(self.padre[nodo])
-        return self.padre[nodo]
+    def __init__(self,nodos):
+        self.parent = {n:n for n in nodos}
 
-    def unir(self, nodo1, nodo2):
-        raiz1 = self.encontrar(nodo1)
-        raiz2 = self.encontrar(nodo2)
+    def find(self,n):
 
-        if raiz1 == raiz2:
+        while self.parent[n] != n:
+            n = self.parent[n]
+
+        return n
+
+    def union(self,a,b):
+
+        ra = self.find(a)
+        rb = self.find(b)
+
+        if ra == rb:
             return False
 
-        if self.rango[raiz1] < self.rango[raiz2]:
-            self.padre[raiz1] = raiz2
-        else:
-            self.padre[raiz2] = raiz1
-            if self.rango[raiz1] == self.rango[raiz2]:
-                self.rango[raiz1] += 1
-
+        self.parent[rb] = ra
         return True
 
 
-def kruskal_complejo(grafo):
-    aristas = []
+def kruskal():
 
-    # Evitar duplicados en grafo no dirigido
-    vistos = set()
-    for nodo in grafo:
-        for vecino, peso in grafo[nodo].items():
-            if (vecino, nodo) not in vistos:
-                aristas.append((peso, nodo, vecino))
-                vistos.add((nodo, vecino))
+    edges_sorted = sorted(G.edges(data=True), key=lambda x: x[2]['weight'])
 
-    aristas.sort()
-
-    uf = UnionFind(grafo.keys())
+    uf = UnionFind(G.nodes)
 
     mst = []
-    costo_total = 0
 
-    for peso, nodo1, nodo2 in aristas:
-        if uf.unir(nodo1, nodo2):
-            mst.append((nodo1, nodo2, peso))
-            costo_total += peso
-            print(f"Conectando {nodo1} - {nodo2} costo {peso}")
+    for u,v,data in edges_sorted:
 
-    if len(mst) != len(grafo) - 1:
-        raise ValueError("El grafo no es conexo")
+        if uf.union(u,v):
 
-    return mst, costo_total
+            mst.append((u,v))
+
+            dibujar(mst)
+
+            time.sleep(1)
+
+    print("MST:",mst)
 
 
-grafo_ciudades = {
-    "A": {"B": 6, "C": 1, "D": 5},
-    "B": {"A": 6, "C": 5, "E": 3},
-    "C": {"A": 1, "B": 5, "D": 5, "E": 6},
-    "D": {"A": 5, "C": 5, "E": 2},
-    "E": {"B": 3, "C": 6, "D": 2}
-}
+plt.figure()
 
-mst, costo = kruskal_complejo(grafo_ciudades)
+kruskal()
 
-print("\nMST final:")
-for a in mst:
-    print(a)
-
-print("Costo total mínimo:", costo)
+plt.show()

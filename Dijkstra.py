@@ -1,88 +1,101 @@
+import networkx as nx
+import matplotlib.pyplot as plt
 import heapq
+import time
 
-class Grafo:
-    def __init__(self):
-        # Diccionario de adyacencia
-        self.vertices = {}
+# -----------------------------
+# PROBLEMA
+# Empresa de logística que busca la ruta más corta
+# desde el almacén central hasta el cliente.
+# -----------------------------
 
-    def agregar_arista(self, origen, destino, peso):
-        """
-        Agrega una arista bidireccional
-        """
-        if peso < 0:
-            raise ValueError("Dijkstra no permite pesos negativos")
+G = nx.Graph()
 
-        if origen not in self.vertices:
-            self.vertices[origen] = {}
-        if destino not in self.vertices:
-            self.vertices[destino] = {}
+edges = [
+("Almacen","A",4),
+("Almacen","B",2),
+("A","C",3),
+("B","C",1),
+("B","D",7),
+("C","D",3),
+("C","Cliente",6),
+("D","Cliente",2)
+]
 
-        self.vertices[origen][destino] = peso
-        self.vertices[destino][origen] = peso
+G.add_weighted_edges_from(edges)
 
+pos = nx.spring_layout(G)
 
-def dijkstra(grafo, inicio):
-    if inicio not in grafo.vertices:
-        raise ValueError("El nodo inicial no existe en el grafo")
+def dibujar(visitados=[], camino=[]):
 
-    distancias = {v: float('inf') for v in grafo.vertices}
-    anterior = {v: None for v in grafo.vertices}
-    visitados = set()
+    plt.clf()
 
-    distancias[inicio] = 0
+    nx.draw(G,pos,node_color="lightgray",node_size=2000,with_labels=True)
 
-    # Cola de prioridad (distancia acumulada, nodo)
-    cola = [(0, inicio)]
+    labels = nx.get_edge_attributes(G,'weight')
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
 
-    while cola:
-        distancia_actual, nodo_actual = heapq.heappop(cola)
+    nx.draw_networkx_nodes(G,pos,nodelist=visitados,node_color="orange")
 
-        # Si ya fue procesado, lo ignoramos
-        if nodo_actual in visitados:
-            continue
+    if camino:
+        ruta_edges = list(zip(camino,camino[1:]))
+        nx.draw_networkx_edges(G,pos,edgelist=ruta_edges,width=4,edge_color="red")
 
-        visitados.add(nodo_actual)
-
-        print(f"Procesando nodo: {nodo_actual} con distancia {distancia_actual}")
-
-        for vecino, peso in grafo.vertices[nodo_actual].items():
-            if vecino not in visitados:
-                nueva_dist = distancia_actual + peso
-
-                if nueva_dist < distancias[vecino]:
-                    distancias[vecino] = nueva_dist
-                    anterior[vecino] = nodo_actual
-                    heapq.heappush(cola, (nueva_dist, vecino))
-
-    return distancias, anterior
+    plt.title("Dijkstra - Ruta de Almacenes")
+    plt.pause(1)
 
 
-def reconstruir_ruta(anterior, destino):
-    ruta = []
-    while destino is not None:
-        ruta.append(destino)
-        destino = anterior[destino]
-    return list(reversed(ruta))
+def dijkstra(inicio, destino):
+
+    dist = {n:float('inf') for n in G.nodes}
+    prev = {n:None for n in G.nodes}
+
+    dist[inicio] = 0
+
+    pq = [(0,inicio)]
+
+    visitados = []
+
+    while pq:
+
+        d,u = heapq.heappop(pq)
+
+        if u not in visitados:
+
+            visitados.append(u)
+            dibujar(visitados)
+
+            if u == destino:
+                break
+
+            for v in G.neighbors(u):
+
+                peso = G[u][v]['weight']
+                nueva = d + peso
+
+                if nueva < dist[v]:
+
+                    dist[v] = nueva
+                    prev[v] = u
+                    heapq.heappush(pq,(nueva,v))
+
+    camino = []
+    nodo = destino
+
+    while nodo:
+        camino.append(nodo)
+        nodo = prev[nodo]
+
+    camino.reverse()
+
+    dibujar(visitados,camino)
+
+    print("Ruta óptima:",camino)
+    print("Distancia:",dist[destino])
 
 
-# -------------------- EJECUCIÓN --------------------
+plt.figure()
 
-g = Grafo()
+dijkstra("Almacen","Cliente")
 
-g.agregar_arista("Almacen", "A", 5)
-g.agregar_arista("Almacen", "B", 2)
-g.agregar_arista("A", "C", 4)
-g.agregar_arista("B", "C", 1)
-g.agregar_arista("B", "D", 7)
-g.agregar_arista("C", "D", 3)
-g.agregar_arista("C", "EntregaFinal", 6)
-g.agregar_arista("D", "EntregaFinal", 2)
-
-distancias, anterior = dijkstra(g, "Almacen")
-
-print("\nDistancias finales:")
-for nodo in distancias:
-    print(nodo, "->", distancias[nodo])
-
-print("\nRuta óptima a EntregaFinal:")
-print(reconstruir_ruta(anterior, "EntregaFinal"))
+plt.show()

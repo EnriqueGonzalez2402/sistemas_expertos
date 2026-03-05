@@ -1,54 +1,79 @@
+import networkx as nx
+import matplotlib.pyplot as plt
 import heapq
+import time
 
-def prim_complejo(grafo):
-    if not grafo:
-        raise ValueError("El grafo está vacío")
+# -----------------------------
+# PROBLEMA
+# Conectar facultades a la red principal
+# de la universidad con el menor costo.
+# -----------------------------
 
-    inicio = list(grafo.keys())[0]
+G = nx.Graph()
 
-    visitados = set([inicio])
-    aristas_mst = []
-    costo_total = 0
+edges = [
+("Universidad","Ingenieria",4),
+("Universidad","Medicina",3),
+("Ingenieria","Arquitectura",2),
+("Ingenieria","Derecho",5),
+("Medicina","Derecho",1),
+("Derecho","Economia",6),
+("Arquitectura","Economia",7)
+]
 
-    cola = []
+G.add_weighted_edges_from(edges)
 
-    # Insertamos todas las aristas del nodo inicial
-    for vecino, peso in grafo[inicio].items():
-        heapq.heappush(cola, (peso, inicio, vecino))
+pos = nx.spring_layout(G)
 
-    while cola:
-        peso, origen, destino = heapq.heappop(cola)
+def dibujar(aristas=[]):
 
-        if destino not in visitados:
-            visitados.add(destino)
-            aristas_mst.append((origen, destino, peso))
-            costo_total += peso
+    plt.clf()
 
-            print(f"Agregando arista {origen} - {destino} con costo {peso}")
+    nx.draw(G,pos,node_color="lightblue",node_size=2000,with_labels=True)
 
-            for vecino, costo in grafo[destino].items():
+    labels = nx.get_edge_attributes(G,'weight')
+    nx.draw_networkx_edge_labels(G,pos,edge_labels=labels)
+
+    nx.draw_networkx_edges(G,pos,edgelist=aristas,width=4,edge_color="green")
+
+    plt.title("Prim - Red Universidad")
+    plt.pause(1)
+
+
+def prim():
+
+    inicio = list(G.nodes)[0]
+
+    visitados = {inicio}
+
+    edges_mst = []
+
+    pq = []
+
+    for v in G.neighbors(inicio):
+        peso = G[inicio][v]['weight']
+        heapq.heappush(pq,(peso,inicio,v))
+
+    while pq:
+
+        peso,u,v = heapq.heappop(pq)
+
+        if v not in visitados:
+
+            visitados.add(v)
+            edges_mst.append((u,v))
+
+            dibujar(edges_mst)
+
+            for vecino in G.neighbors(v):
                 if vecino not in visitados:
-                    heapq.heappush(cola, (costo, destino, vecino))
+                    heapq.heappush(pq,(G[v][vecino]['weight'],v,vecino))
 
-    # Verificar si el grafo es conexo
-    if len(visitados) != len(grafo):
-        raise ValueError("El grafo no es conexo")
-
-    return aristas_mst, costo_total
+    print("Aristas seleccionadas:",edges_mst)
 
 
-grafo_red = {
-    "Nodo1": {"Nodo2": 4, "Nodo3": 3},
-    "Nodo2": {"Nodo1": 4, "Nodo3": 1, "Nodo4": 2},
-    "Nodo3": {"Nodo1": 3, "Nodo2": 1, "Nodo4": 5},
-    "Nodo4": {"Nodo2": 2, "Nodo3": 5, "Nodo5": 7},
-    "Nodo5": {"Nodo4": 7}
-}
+plt.figure()
 
-aristas, costo = prim_complejo(grafo_red)
+prim()
 
-print("\nÁrbol de expansión mínima:")
-for a in aristas:
-    print(a)
-
-print("Costo total:", costo)
+plt.show()
