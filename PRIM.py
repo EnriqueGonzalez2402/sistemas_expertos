@@ -14,6 +14,7 @@ G = nx.Graph()
 edges = [
 ("Universidad","Ingenieria",4),
 ("Universidad","Medicina",3),
+("Hospital","Medicina",3),
 ("Ingenieria","Arquitectura",2),
 ("Ingenieria","Derecho",5),
 ("Medicina","Derecho",1),
